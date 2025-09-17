@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Loan API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" />
+</head>
+<body>
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            // Определяем URL для спецификации
+            const specUrl = window.location.href.replace('swagger-ui.html', 'swagger.yaml');
+            
+            // Инициализация Swagger UI
+            const ui = SwaggerUIBundle({
+                url: specUrl,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "list",
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: true,
+                requestInterceptor: function(request) {
+                    // Добавляем заголовки для CORS если необходимо
+                    request.headers['Accept'] = 'application/json';
+                    return request;
+                },
+                responseInterceptor: function(response) {
+                    // Логирование ответов для отладки
+                    console.log('API Response:', response);
+                    return response;
+                },
+                onComplete: function() {
+                    console.log('Swagger UI загружен успешно');
+                },
+                onFailure: function(error) {
+                    console.error('Ошибка загрузки Swagger UI:', error);
+                    document.getElementById('swagger-ui').innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #e74c3c;">
+                            <h3>❌ Ошибка загрузки спецификации</h3>
+                            <p>Не удалось загрузить файл swagger.yaml</p>
+                            <p>Убедитесь, что файл находится в той же директории</p>
+                            <details>
+                                <summary>Детали ошибки</summary>
+                                <pre>${JSON.stringify(error, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                },
+                validatorUrl: null, // Отключаем валидатор для локальной разработки
+                supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+                requestSnippetsEnabled: true,
+                requestSnippets: {
+                    generators: {
+                        "curl_bash": {
+                            title: "cURL (bash)",
+                            syntax: "bash"
+                        },
+                        "curl_powershell": {
+                            title: "cURL (PowerShell)",
+                            syntax: "powershell"
+                        }
+                    },
+                    defaultExpanded: true,
+                    languages: null // Показать все доступные языки
+                }
+            });
+
+            // Добавляем кастомные стили после загрузки
+            setTimeout(() => {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .swagger-ui .info .title {
+                        color: #2c3e50;
+                    }
+                    .swagger-ui .scheme-container {
+                        background: #ecf0f1;
+                        padding: 10px;
+                        border-radius: 5px;
+                    }
+                    .swagger-ui .opblock.opblock-post {
+                        border-color: #49cc90;
+                        background: rgba(73, 204, 144, 0.1);
+                    }
+                    .swagger-ui .opblock.opblock-get {
+                        border-color: #61affe;
+                        background: rgba(97, 175, 254, 0.1);
+                    }
+                `;
+                document.head.appendChild(style);
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Loan API
+  description: API для подачи и обработки заявок на займы
+  version: 1.0.0
+
+
+servers:
+  - url: http://localhost
+    description: Development server
+  - url: http://localhost:80
+    description: Production server
+
+tags:
+  - name: requests
+    description: Операции с заявками на займы
+  - name: processor
+    description: Обработка заявок на займы
+  - name: system
+    description: Системные операции
+
+paths:
+  /:
+    get:
+      tags:
+        - system
+      summary: Проверка состояния API
+      description: Возвращает информацию о состоянии API и доступных эндпоинтах
+      operationId: getApiStatus
+      responses:
+        '200':
+          description: API работает корректно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Loan API is running"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  endpoints:
+                    type: object
+                    properties:
+                      "POST /requests":
+                        type: string
+                        example: "Create loan request"
+                      "GET /processor":
+                        type: string
+                        example: "Process loan requests"
+
+  /requests:
+    post:
+      tags:
+        - requests
+      summary: Подача заявки на займ
+      description: |
+        Создание новой заявки на займ с валидацией входных данных.
+        
+        ## Валидация
+        
+        - `user_id`: обязательное поле, целое число > 0
+        - `amount`: обязательное поле, целое число > 0 (сумма займа)
+        - `term`: обязательное поле, целое число > 0 (срок в днях)
+        
+        ## Ограничения
+        
+        - У пользователя не должно быть активных одобренных заявок
+        - Все поля обязательны для заполнения
+        - Значения должны быть положительными числами
+      operationId: createLoanRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLoanRequest'
+            examples:
+              valid_request:
+                summary: Валидная заявка
+                value:
+                  user_id: 1
+                  amount: 3000
+                  term: 30
+              large_amount:
+                summary: Большая сумма займа
+                value:
+                  user_id: 2
+                  amount: 50000
+                  term: 90
+              short_term:
+                summary: Краткосрочный займ
+                value:
+                  user_id: 3
+                  amount: 1000
+                  term: 7
+      responses:
+        '201':
+          description: Заявка успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateLoanResponse'
+              examples:
+                success:
+                  summary: Успешное создание
+                  value:
+                    result: true
+                    id: 42
+        '400':
+          description: Ошибка валидации или бизнес-логики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Ошибка валидации
+                  value:
+                    result: false
+                existing_approved:
+                  summary: У пользователя уже есть одобренная заявка
+                  value:
+                    result: false
+                negative_amount:
+                  summary: Отрицательная сумма
+                  value:
+                    result: false
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+  /processor:
+    get:
+      tags:
+        - processor
+      summary: Запуск обработки заявок
+      description: |
+        Запускает процесс обработки всех заявок со статусом 'pending'.
+        
+        ## Логика обработки
+        
+        1. Получение всех заявок со статусом 'pending'
+        2. Для каждой заявки:
+           - Проверка отсутствия одобренных заявок у пользователя
+           - Рандомное принятие решения (10% вероятность одобрения)
+           - Эмуляция задержки через sleep(delay)
+           - Обновление статуса заявки ('approved' или 'declined')
+        
+        ## Особенности
+        
+        - Поддерживает параллельные запросы
+        - Заявки одного пользователя могут обрабатываться параллельно
+        - Каждая заявка обрабатывается в отдельной транзакции
+        - Вероятность одобрения: 10%
+        - Максимум одна одобренная заявка на пользователя
+      operationId: processLoanRequests
+      parameters:
+        - name: delay
+          in: query
+          description: |
+            Время задержки в секундах для эмуляции продолжительного 
+            принятия решения по каждой заявке.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 60
+            default: 0
+          examples:
+            no_delay:
+              summary: Без задержки
+              value: 0
+            short_delay:
+              summary: Короткая задержка
+              value: 2
+            long_delay:
+              summary: Длинная задержка
+              value: 10
+      responses:
+        '200':
+          description: Обработка завершена успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessorResponse'
+              examples:
+                success:
+                  summary: Успешная обработка
+                  value:
+                    result: true
+        '500':
+          description: Ошибка при обработке заявок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+
+components:
+  schemas:
+    CreateLoanRequest:
+      type: object
+      required:
+        - user_id
+        - amount
+        - term
+      properties:
+        user_id:
+          type: integer
+          minimum: 1
+          description: Идентификатор пользователя
+          example: 1
+        amount:
+          type: integer
+          minimum: 1
+          maximum: 1000000
+          description: Сумма займа в рублях
+          example: 3000
+        term:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Срок займа в днях
+          example: 30
+
+    CreateLoanResponse:
+      type: object
+      required:
+        - result
+        - id
+      properties:
+        result:
+          type: boolean
+          description: Результат операции
+          example: true
+        id:
+          type: integer
+          description: Идентификатор созданной заявки
+          example: 42
+
+    ProcessorResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: boolean
+          description: Результат операции обработки
+          example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: boolean
+          description: Результат операции (всегда false для ошибок)
+          example: false
+        message:
+          type: string
+          description: Описание ошибки (опционально)
+          example: "Validation failed"
+
+    ServerErrorResponse:
+      type: object
+      required:
+        - result
+        - error
+      properties:
+        result:
+          type: boolean
+          description: Результат операции (всегда false для ошибок)
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              description: HTTP код ошибки
+              example: 500
+            message:
+              type: string
+              description: Сообщение об ошибке
+              example: "Internal Server Error"
+
+    LoanRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор заявки
+          example: 1
+        user_id:
+          type: integer
+          description: Идентификатор пользователя
+          example: 1
+        amount:
+          type: integer
+          description: Сумма займа в рублях
+          example: 3000
+        term:
+          type: integer
+          description: Срок займа в днях
+          example: 30
+        status:
+          type: string
+          enum: [pending, approved, declined]
+          description: Статус заявки
+          example: pending
+        created_at:
+          type: string
+          format: date-time
+          description: Дата и время создания заявки
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата и время последнего обновления
+          example: "2024-01-15T10:35:00Z"
+
+  securitySchemes: {}
+
+security: []

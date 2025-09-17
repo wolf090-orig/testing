@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-ticket-manager
+  namespace: ms
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-ticket-manager
+  template:
+    metadata:
+      labels:
+        app: ms-ticket-manager
+    spec:
+      containers:
+        - name: ms-ticket-manager-container
+          image: git.abflow.uz:5005/nlu/ms-ticket-manager:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ms-ticket-manager-db-config
+            - configMapRef:
+                name: ms-redis-config
+            - configMapRef:
+                name: ms-ticket-manager-config
+            - configMapRef:
+                name: ms-kafka-config
+            - secretRef:
+                name: ms-postgres-secret
+            - secretRef:
+                name: ms-redis-secret
+            - secretRef:
+                name: kafka-ticket-service
+          resources: {}
+      imagePullSecrets:
+        - name: gitlab-registry-creds
+      nodeSelector:
+        name: pathetic

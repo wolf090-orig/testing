@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ms-lottery-config
+  namespace: ms
+data:
+  APP_NAME: webman
+  APP_TIMEZONE: Asia/Tashkent
+  DB_DRIVER: pgsql
+  SERVER_ADDRESS: 0.0.0.0
+  SERVER_CPU_COUNT: '4'
+  SERVER_DEBUG: 'true'
+  SERVER_PORT: '8088'
+  VERIFICATION_TIMEOUT_MINUTES: '15'
+  KAFKA_NLU_TICKET_DAILY_TOPIC: 'daily_tickets_v1'
+  KAFKA_NLU_TICKET_WEEKLY_TOPIC: 'weekly_tickets_v1'
+  KAFKA_NLU_TICKET_MONTHLY_TOPIC: 'monthly_tickets_v1'
+  KAFKA_NLU_TICKET_YEARLY_TOPIC: 'yearly_tickets_v1'
+  KAFKA_NLU_LOTTERY_SCHEDULES_TOPIC: 'lottery_schedules_v1'
+  KAFKA_NLU_LOTTERY_DRAW_RESULTS_TOPIC: 'lottery_draw_results_v1'
+  KAFKA_NLU_WITH_SASL: 'true'
+# Экспорт билетов в кафку
+  USER_TICKETS_EXPORT_CHUNK_SIZE: '1000'
+  USER_TICKETS_EXPORT_MAX_TICKETS: '100000'
+
+  WINNER_PERCENTAGE: '5'
+  MS_TICKET_MANAGER_URI_NEW: 'http://ms-ticket-manager-service.ms.svc.cluster.local'
+
+  APP_ENV: 'dev'

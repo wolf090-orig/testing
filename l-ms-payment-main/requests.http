@@ -1,0 +1,211 @@
+### MS-Payment API Examples
+### Все примеры запросов для тестирования эндпоинтов ms-payment
+
+### Variables
+@baseUrl = http://localhost:8087
+@token = secret_123
+@internal_order_id = basket_test_17
+
+### =================================
+### 1. Healthcheck
+### =================================
+
+GET {{baseUrl}}/healthcheck
+
+### =================================
+### 2. PayIn - Создание пополнения
+### =================================
+
+### Успешный PayIn
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "{{internal_order_id}}",
+    "user_id": 123456789,
+    "amount": 5670,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### PayIn с ошибкой MODE_NO_CARDS (сумма 1000)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "test_no_cards",
+    "user_id": 1,
+    "amount": 1000,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### PayIn с ошибкой MODE_DUPLICATE (basket_0 в order_id)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "basket_0_test",
+    "user_id": 1,
+    "amount": 500,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### =================================
+### 3. PayOut - Создание выплаты
+### =================================
+
+POST {{baseUrl}}/api/v1/payments/payout
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "payout_test_17",
+    "user_id": 123456789,
+    "amount": 5000,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### =================================
+### 4. Status - Получение статуса платежа
+### =================================
+
+GET {{baseUrl}}/api/v1/payments/{{internal_order_id}}/status
+Authorization: Bearer {{token}}
+
+### =================================
+### 5. Check - Проверка существования платежа
+### =================================
+
+GET {{baseUrl}}/api/v1/payments/{{internal_order_id}}/check
+Authorization: Bearer {{token}}
+
+### =================================
+### 6. Balance - Получение баланса
+### =================================
+
+GET {{baseUrl}}/api/v1/payments/balance
+Authorization: Bearer {{token}}
+
+### =================================
+### 7. FPGate Callback - Webhook от платежного шлюза
+### =================================
+
+POST {{baseUrl}}/api/v1/payments/fpgate/callback
+Content-Type: application/json
+
+{
+    "transaction_id": "515364737",
+    "order_id": "{{internal_order_id}}",
+    "status": "completed",
+    "amount": 5670,
+    "currency": "RUB",
+    "signature": "abc123def456",
+    "additional_data": {
+        "payment_method": "card",
+        "bank": "АЛЬФА-БАНК"
+    }
+}
+
+### =================================
+### Тестовые сценарии из TESTING_SCENARIOS.md
+### =================================
+
+### Сценарий 1: MODE_NO_CARDS (приоритет 1)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "test_no_cards_scenario",
+    "user_id": 1,
+    "amount": 1000,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### Сценарий 2: MODE_DUPLICATE (приоритет 2)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "basket_0_duplicate_test",
+    "user_id": 1,
+    "amount": 500,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### Сценарий 3: MODE_SUCCESS (приоритет 3)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "success_scenario_test",
+    "user_id": 1,
+    "amount": 500,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### Комбинированный тест: сумма 1000 + basket_0 → MODE_NO_CARDS (приоритет у суммы)
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "basket_0_but_amount_1000",
+    "user_id": 1,
+    "amount": 1000,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### =================================
+### Тестирование валидации
+### =================================
+
+### Невалидный payment_method
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "invalid_method_test",
+    "user_id": 123456789,
+    "amount": 5670,
+    "currency": "RUB",
+    "payment_method": "invalid_method"
+}
+
+### Отсутствует обязательное поле
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "internal_order_id": "missing_field_test",
+    "amount": 5670,
+    "currency": "RUB",
+    "payment_method": "card"
+}
+
+### Неверная авторизация
+POST {{baseUrl}}/api/v1/payments/payin
+Authorization: Bearer invalid_token
+Content-Type: application/json
+
+{
+    "internal_order_id": "auth_test",
+    "user_id": 123456789,
+    "amount": 5670,
+    "currency": "RUB",
+    "payment_method": "card"
+}

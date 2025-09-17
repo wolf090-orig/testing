@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ms-payment-db-config
+  namespace: ms
+data:
+  DB_DATABASE: ms_auth
+  DB_HOST: master.d3e51693-cbd6-4877-a93d-5516d4c00702.c.dbaas.selcloud.ru
+  DB_PORT: '5432'

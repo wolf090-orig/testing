@@ -1,0 +1,2083 @@
+openapi: 3.0.3
+info:
+  title: API Лото
+  description: ""
+  version: 1.0.0
+tags:
+  - name: User МС Управления пользователями
+  - name: Ticket МС Управления билетами
+  - name: Payment МС Платежей
+servers:
+  - url: https://api.example.com
+    description: Тестовый сервер
+
+paths:
+  /healthcheck:
+    get:
+      tags:
+        - User
+      summary: Проверка состояния сервиса
+      description: Healthcheck эндпоинт для проверки работоспособности сервиса (универсальный для всех микросервисов)
+      responses:
+        '200':
+          description: Сервис работает корректно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthcheckResponse'
+
+  /api/v1/ticket/lotteries:
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [ active, history ]
+          description: Тип лотереи. Активная или в истории (по умолчанию отображаются только активные лотереи)
+        - in: query
+          name: lottery_type
+          required: false
+          schema:
+            type: string
+            enum: [ daily, weekly, monthly, yearly ]
+          description: Тип лотереи. По умолчанию отображаются все
+      summary: Выбор лотерей
+      description: Получить список доступных лотерей.
+      responses:
+        '200':
+          description: Успешное получение списка лотерей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotteriesResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/payments/payin:
+    post:
+      tags:
+        - Payment
+      security:
+        - bearerAuth: [ ]
+      summary: Создание пополнения (PayIn)
+      description: Создать новый платеж для пополнения баланса пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            example:
+              internal_order_id: "basket_test_17"
+              user_id: 123456789
+              amount: 5670
+              currency: "RUB"
+              payment_method: "card"
+      responses:
+        '200':
+          description: Платеж успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSuccessResponse'
+              example:
+                message: "Платеж создан успешно"
+                status: "success"
+                data:
+                  internal_order_id: "basket_test_18"
+                  external_transaction_id: "515364737"
+                  amount: 5670
+                  currency: "RUB"
+                  payment_method: "card"
+                  payment_details:
+                    name: "Алихан Ш"
+                    card: "2200154534785158" 
+                    bank: "АЛЬФА-БАНК"
+                errors: []
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                message: "Validation error"
+                status: "error"
+                data: []
+                errors: ["payment_method должен быть card или sbp"]
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/payments/payout:
+    post:
+      tags:
+        - Payment
+      security:
+        - bearerAuth: [ ]
+      summary: Создание выплаты (PayOut)
+      description: Создать новый платеж для вывода средств пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            example:
+              internal_order_id: "payout_test_17"
+              user_id: 123456789
+              amount: 5000
+              currency: "RUB"
+              payment_method: "card"
+      responses:
+        '200':
+          description: Выплата успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSuccessResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/payments/{internal_order_id}/status:
+    get:
+      tags:
+        - Payment
+      security:
+        - bearerAuth: [ ]
+      summary: Получение статуса платежа
+      description: Получить текущий статус платежа по internal_order_id
+      parameters:
+        - in: path
+          name: internal_order_id
+          required: true
+          schema:
+            type: string
+          description: Внутренний идентификатор заказа
+          example: "basket_test_17"
+      responses:
+        '200':
+          description: Статус платежа получен успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+              example:
+                message: "Статус платежа получен"
+                status: "success"
+                data:
+                  internal_order_id: "basket_test_17"
+                  external_transaction_id: "515364737"
+                  status: "completed"
+                  amount: 5670
+                  currency: "RUB"
+                errors: []
+        '404':
+          description: Платеж не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/payments/{internal_order_id}/check:
+    get:
+      tags:
+        - Payment
+      security:
+        - bearerAuth: [ ]
+      summary: Проверка существования платежа
+      description: Проверить существует ли платеж с данным internal_order_id
+      parameters:
+        - in: path
+          name: internal_order_id
+          required: true
+          schema:
+            type: string
+          description: Внутренний идентификатор заказа
+          example: "basket_test_17"
+      responses:
+        '200':
+          description: Результат проверки получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCheckResponse'
+              example:
+                message: "Проверка выполнена"
+                status: "success"
+                data:
+                  exists: true
+                  internal_order_id: "basket_test_17"
+                errors: []
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/payments/balance:
+    get:
+      tags:
+        - Payment
+      security:
+        - bearerAuth: [ ]
+      summary: Получение баланса
+      description: Получить текущий баланс пользователя или системы
+      responses:
+        '200':
+          description: Баланс получен успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+              example:
+                message: "Баланс получен"
+                status: "success"
+                data:
+                  balance: 150000
+                  currency: "RUB"
+                  updated_at: "2024-01-15T10:30:00Z"
+                errors: []
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/payments/fpgate/callback:
+    post:
+      tags:
+        - Payment
+      summary: FPGate Callback
+      description: Webhook для получения уведомлений о статусе платежей от FPGate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FPGateCallbackRequest'
+            example:
+              transaction_id: "515364737"
+              order_id: "basket_test_17"
+              status: "completed"
+              amount: 5670
+              currency: "RUB"
+              signature: "abc123def456"
+      responses:
+        '200':
+          description: Callback обработан успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+        '400':
+          description: Неверные данные callback
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+        '401':
+          description: Неверная подпись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultErrorResponse'
+
+  /api/v1/ticket/tickets:
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Получить список билетов доступных к покупке
+      description: Получить список билетов, которые можно приобрести.
+      parameters:
+        - in: query
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [ auto, manual ]
+          description: Тип билета (авто или ручной выбор)
+        - in: query
+          name: quantity
+          required: false
+          schema:
+            type: integer
+          description:
+            Количество билетов в ответе
+        - in: query
+          name: mask
+          required: false
+          schema:
+            type: string
+          description:
+            "Маска для ручного выбора билетов (например: 1~~7~~~)"
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+          description: Номер страницы
+          example: 1
+        - in: query
+          name: page-size
+          required: false
+          schema:
+            type: integer
+          description: Количество элементов на странице
+          example: 10
+      responses:
+        '200':
+          description: Успешное получение списка билетов
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/TicketsResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/ticket/basket:
+    post:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Добавить билет в корзину
+      description: Добавить выбранный билет в корзину.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTicketToCartRequest'
+      responses:
+        '200':
+          description: Успешное добавление билета в корзину
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultSuccessResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Получение корзины пользователя
+      description: Получить текущую корзину пользователя.
+      responses:
+        '200':
+          description: Успешное получение корзины
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/CartResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    delete:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Удаление билетов из корзины
+      description: Полное удаление всех билетов или удаление билетов по 1
+      parameters:
+        - in: query
+          name: ticket_id
+          required: false
+          schema:
+            type: integer
+          description: Идентификатор билета
+      responses:
+        '200':
+          description: Успешное получение корзины
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/ticket/basket/payment:
+    post:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Оплата корзины
+      description: Оплатить билеты в корзине.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Успешная оплата корзины
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/BasketPaymentResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/ticket/info:
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Получение количества участников текущей лотереи и призового фонда
+      description: Получить количество участников и размер призового фонда текущей лотереи.
+      parameters:
+        - in: query
+          name: lottery_id
+          required: true
+          schema:
+            type: integer
+          description: Идентификатор лотереи
+      responses:
+        '200':
+          description: Успешное получение данных
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/LotteryInfoResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  /api/v1/ticket/user/tickets:
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Получить билеты купленные пользователем
+      description: Получить билеты купленные пользователем
+      parameters:
+        - in: query
+          name: lottery_id
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+            enum:
+              - active
+              - history
+              - winner
+            default: active
+          description: статус билетов
+      responses:
+        '200':
+          description: Успешное получение данных
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/UserTicketsResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  /api/v1/ticket/user/tickets/{id}:
+    get:
+      tags:
+        - Ticket
+      security:
+        - bearerAuth: [ ]
+      summary: Получить конкретный билет, купленный пользователем
+      description: Получить конкретный билет, купленный пользователем по ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID билета
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                with_leaderboard:
+                  type: boolean
+                  description: Включить данные о лидерборде(победителях и победных местах)
+      responses:
+        '200':
+          description: Успешное получение данных
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/UserTicketResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/user/profile:
+    get:
+      tags:
+        - User
+      security:
+        - telegramAuth: [ ]
+      summary: Получение профиля пользователя
+      description: Получить информацию о профиле текущего пользователя
+      responses:
+        '200':
+          description: Успешное получение профиля
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/UserProfileData'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/user/settings:
+    post:
+      tags:
+        - User
+      security:
+        - telegramAuth: [ ]
+      summary: Обновление настроек пользователя
+      description: Обновить настройки языка и страны для пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingsRequest'
+      responses:
+        '200':
+          description: Успешное обновление настроек
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/UserProfileData'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+    get:
+      tags:
+        - User
+      security:
+        - telegramAuth: [ ]
+      summary: Получение доступных настроек
+      description: Получить список доступных стран и языков
+      responses:
+        '200':
+          description: Успешное получение списка настроек
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/SettingsListResponse'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/auth/telegram:
+    post:
+      tags:
+        - User
+      security:
+        - telegramAuth: [ ]
+      summary: Авторизация пользователя Telegram
+      description: Регистрация или авторизация пользователя через данные Telegram
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/DefaultSuccessResponse'
+                  - $ref: '#/components/schemas/UserProfileData'
+        '422':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+components:
+  securitySchemes:
+    telegramAuth:
+      type: apiKey
+      in: header
+      name: X-Telegram-Init-Data
+      description: Заголовок с данными инициализации Telegram WebApp
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: string
+  schemas:
+    status_success:
+      type: string
+      description: Статус ответа
+      example: "success"
+
+    status_error:
+      type: string
+      description: Статус ответа
+      example: "error"
+    #    status_warning:
+    #      type: string
+    #      description: Статус ответа
+    #      example: "warning"
+
+    data:
+      type: array
+      description: Массив с данными ответа
+      items:
+        type: object
+      example: [ ]
+
+    errors:
+      type: array
+      description: Массив ошибок
+      items:
+        type: object
+      example: [ ]
+
+    example_errors:
+      type: array
+      description: Массив ошибок
+      items:
+        type: object
+        properties:
+          error:
+            type: string
+            description: Сообщение об ошибке
+
+    validation_errors:
+      type: object
+      properties:
+        property_name:
+          type: array
+          description: Название поля
+          items:
+            type: string
+            description: Описание ошибки
+            example: "Сообщение об ошибке. Например: 'Поле Имя обязательно для заполнения'"
+
+    first_name:
+      type: string
+      description: Имя пользователя
+      example: Иван
+    last_name:
+      type: string
+      description: Фамилия пользователя
+      example: Иванов
+    date_birth:
+      type: string
+      format: date
+      description: Дата рождения пользователя в формате DD-MM-YYYY
+      example: 01-01-1990
+    phone:
+      type: string
+      description: Номер телефона
+      example: "998991234567"
+    pinfl:
+      type: string
+      description: Персональный идентификационный номер физического лица Узбекистана
+      example: "12345678901234"
+      minLength: 14
+      maxLength: 14
+    email:
+      type: string
+      description: email пользователя
+      example: "email@email.com"
+    id:
+      type: integer
+      description: Идентификатор пользователя
+      example: 1
+    is_identified:
+      type: boolean
+      description: Признак идентификации пользователя через myid
+      example: true
+    ticket_number:
+      type: string
+      description: Номер билета
+      example: "0000004"
+    lottery_type_name:
+      type: string
+      description: Название типа лотереи
+      example: "daily"
+    ticket_price:
+      type: number
+      description: Стоимость билета
+      example: 5000.10
+    lottery_id:
+      type: integer
+      description: Номер лотереи
+
+
+
+    DefaultSuccessResponse:
+      type: object
+      required:
+        - status
+        - message
+        - errors
+      properties:
+        status:
+          $ref: "#/components/schemas/status_success"
+        message:
+          type: string
+          description: Некое сообщение при ответе
+          example: Успешно
+        errors:
+          $ref: "#/components/schemas/errors"
+    DefaultDataResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/data"
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+        - data
+        - errors
+      properties:
+        status:
+          $ref: "#/components/schemas/status_error"
+        message:
+          type: string
+          description: Сообщение об ошибке валидации
+          example: Validation error
+        data:
+          $ref: "#/components/schemas/data"
+        errors:
+          $ref: "#/components/schemas/validation_errors"
+
+    DefaultErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+        - data
+        - errors
+      properties:
+        status:
+          $ref: "#/components/schemas/status_error"
+        message:
+          type: string
+          description: Некое сообщение об ошибке
+          example: Сообщение об ошибке...
+        data:
+          $ref: "#/components/schemas/data"
+        errors:
+          $ref: "#/components/schemas/example_errors"
+
+    UserRegisterRequest:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          $ref: "#/components/schemas/phone"
+    UserUpdateRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - date_birth
+        - pinfl
+        - email
+      properties:
+        first_name:
+          $ref: "#/components/schemas/first_name"
+        last_name:
+          $ref: "#/components/schemas/last_name"
+        date_birth:
+          $ref: "#/components/schemas/date_birth"
+        pinfl:
+          $ref: "#/components/schemas/pinfl"
+        email:
+          $ref: "#/components/schemas/email"
+
+
+    #    SuccessUserRegisterResponse:
+    #      type: object
+    #      properties:
+    #        data:
+    #          type: array
+    #          items:
+    #            type: object
+    #          example: [ ]
+
+    NotificationSendSMSRequest:
+      type: object
+      required:
+        - phone
+        - message
+      properties:
+        phone:
+          $ref: "#/components/schemas/phone"
+        message:
+          type: string
+          description: Сообщение для отправки
+          example: "Ваш код подтверждения"
+
+    NotificationSendSMSV2Request:
+      type: object
+      required:
+        - phone
+        - code
+        - pattern_type
+        - locale
+      properties:
+        phone:
+          $ref: "#/components/schemas/phone"
+        code:
+          type: integer
+          description: Код подтверждения
+          example: 12345
+        pattern_type:
+          type: integer
+          description: Тип шаблона для отправки смс (например, 1 - для входа, 2 - для подтверждения каких-то действий)
+          example: 1
+        locale:
+          type: string
+          description: Локализация языка, на котором будет отправлено сообщение
+          example: "ru-RU"
+          enum:
+            - "en"
+            - "ru-RU"
+            - "uz-Latn"
+            - "uz-Cyrl"
+
+    SendSMSRequest:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          $ref: "#/components/schemas/phone"
+    SendSMSResponse:
+      type: object
+      required:
+        - data
+        - message
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+          example: [ ]
+        message:
+          type: string
+          example: Сообщение с кодом подтверждения отправлено на номер ...
+
+    CheckSMSRequest:
+      type: object
+      required:
+        - phone
+        - code
+      properties:
+        phone:
+          $ref: "#/components/schemas/phone"
+        code:
+          type: string
+          description: СМС код
+          example: "123456"
+
+    CheckSMSResponse:
+      $ref: '#/components/schemas/GenerateTokenResponse'
+
+    AgreementRequest:
+      type: object
+      required:
+        - agreement_numbers
+      properties:
+        agreement_numbers:
+          type: array
+          description: Номера соглашений
+          items:
+            type: string
+          example: [ "AG123456", "AG654321" ]
+
+    SdkIdentificationRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: Код полученный от сервиса MyID при идентификации через SDK
+
+    GetAgreementResponse:
+      type: object
+      required:
+        - agreement_numbers
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+                description: Идентификатор соглашения
+              name:
+                type: string
+                example: Обработка перс данных
+                description: Название соглашения
+
+    GenerateTokenResponse:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: object
+          description: "Объект, содержащий токены и время их действия"
+          properties:
+            access_token:
+              type: string
+              description: "Токен доступа"
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refresh_token:
+              type: string
+              description: "Токен обновления"
+              example: "dGhpcyBpcyBhIHNhbXBsZSB0b2tlbiBzdHJpbmc..."
+            access_token_expires_in:
+              type: integer
+              description: "Время до истечения токена в секундах"
+              example: 3600
+            refresh_token_expires_in:
+              type: integer
+              description: "Время до истечения токена в секундах"
+              example: 86400
+          required:
+            - access_token
+            - refresh_token
+            - access_token_expires_in
+            - refresh_token_expires_in
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Refresh токен
+          example: "dGhpcyBpcyBhIHNhbXBsZSB0b2tlbiBzdHJpbmc..."
+
+    UserProfileResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - first_name
+            - last_name
+            - date_birth
+            - pinfl
+            - phone
+            - email
+          properties:
+            first_name:
+              $ref: "#/components/schemas/first_name"
+            last_name:
+              $ref: "#/components/schemas/last_name"
+            date_birth:
+              $ref: "#/components/schemas/date_birth"
+            phone:
+              $ref: "#/components/schemas/phone"
+            pinfl:
+              $ref: "#/components/schemas/pinfl"
+            email:
+              $ref: "#/components/schemas/email"
+            is_identified:
+              $ref: "#/components/schemas/is_identified"
+    UserRegisterResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - phone
+          properties:
+            id:
+              $ref: "#/components/schemas/id"
+            phone:
+              $ref: "#/components/schemas/phone"
+
+    LotteriesResponse:
+      type: object
+      required:
+        - id
+        - name
+        - type_id
+        - type_name
+        - sale_start
+        - sale_end
+        - draw_date
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Идентификатор лотереи
+              name:
+                type: string
+                description: Название лотереи
+              type_id:
+                type: integer
+                description: ID типа лотереи
+              type_name:
+                type: string
+                description: Название типа лотереи
+              price:
+                type: number
+                description: Стоимость билета
+              sale_start:
+                type: string
+                format: date-time
+                description: Дата начала продаж
+              sale_end:
+                type: string
+                format: date-time
+                description: Дата окончания продаж
+              draw_date:
+                type: string
+                format: date-time
+                description: Дата розыгрыша
+              total_fund:
+                type: number
+                description: Размер призового фонда
+              participants:
+                type: number
+                description: количество участников
+              country_id:
+                type: integer
+                description: ID страны лотереи
+              country_name:
+                type: string
+                description: Название страны лотереи
+              is_drawn:
+                type: boolean
+                description: Проведен ли розыгрыш
+              is_active:
+                type: boolean
+                description: Активна ли лотерея
+
+    TicketsResponse:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - pagination
+        - number
+      properties:
+        data:
+          type: object
+          properties:
+            tickets:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Идентификатор билета
+                  name:
+                    type: string
+                    description: Название билета
+                  price:
+                    type: number
+                    description: Стоимость билета
+                  number:
+                    type: string
+                    description: Номер билета
+            pagination:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  description: Общее количество билетов
+                page:
+                  type: integer
+                  description: Номер текущей страницы
+                  example: 1
+                page_size:
+                  type: integer
+                  description: Количество элементов на странице
+                  example: 10
+
+    AddTicketToCartRequest:
+      type: object
+      required:
+        - ticket_numbers
+        - lottery_id
+        - quantity
+      properties:
+        ticket_numbers:
+          type: array
+          description: Массив номеров билетов
+            (может быть пустым, будет добавлено указанное в quantity количество билетов)
+          items:
+            type: string
+            description: Номер билета
+          minItems: 0  # Указываем, что массив может быть пустым
+        lottery_id:
+          type: integer
+          description: Идентификатор лотереи
+        quantity:
+          type: integer
+          description: Количество случайных билетов
+
+    CartResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - total_price
+            - tickets
+          properties:
+            id:
+              type: integer
+              description: Идентификатор корзины
+            total_price:
+              type: number
+              description: Общая стоимость
+            end_date:
+              type: string
+              format: date-time
+              description: Дата и время когда корзина будет деактивирована
+            tickets:
+              type: array
+              items:
+                type: object
+                required:
+                  - lottery_number
+                  - ticket_number
+                properties:
+                  lottery_id:
+                    $ref: "#/components/schemas/lottery_id"
+                  lottery_type_name:
+                    $ref: "#/components/schemas/lottery_type_name"
+                  ticket_number:
+                    $ref: "#/components/schemas/ticket_number"
+                  ticket_price:
+                    $ref: "#/components/schemas/ticket_price"
+
+    BasketPaymentResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          description: Массив покупок билетов с индексами 0, 1, 2, ... и payment_info
+          properties:
+            "0":
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  description: ID пользователя
+                basket_id:
+                  type: integer
+                  description: ID корзины
+                ticket_id:
+                  type: string
+                  description: Номер билета
+                lottery_id:
+                  type: integer
+                  description: ID лотереи
+                purchase_amount:
+                  type: integer
+                  description: Сумма покупки в копейках
+                purchase_currency_id:
+                  type: integer
+                  description: ID валюты покупки
+                purchased_at:
+                  type: string
+                  format: date-time
+                  description: Дата покупки
+                created_at:
+                  type: string
+                  format: date-time
+                  description: Дата создания записи
+                updated_at:
+                  type: string
+                  format: date-time
+                  description: Дата обновления записи
+            payment_info:
+              type: object
+              properties:
+                internal_order_id:
+                  type: string
+                  description: Внутренний ID заказа
+                payment_data:
+                  type: object
+                  properties:
+                    internal_order_id:
+                      type: string
+                      description: Внутренний ID заказа
+                    external_transaction_id:
+                      type: string
+                      description: Внешний ID транзакции
+                    amount:
+                      type: integer
+                      description: Сумма платежа в копейках
+                    currency:
+                      type: string
+                      description: Валюта платежа
+                    payment_method:
+                      type: string
+                      description: Метод оплаты
+                    payment_details:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: Имя держателя карты
+                        card:
+                          type: string
+                          description: Номер карты
+                        bank:
+                          type: string
+                          description: Название банка
+                    order_id:
+                      type: string
+                      description: ID заказа в платежном шлюзе
+                    status:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          description: Тип статуса
+                    created_at:
+                      type: string
+                      format: date-time
+                      description: Дата создания платежа
+                    expires_at:
+                      type: string
+                      format: date-time
+                      description: Дата истечения платежа
+
+    LotteryInfoResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - players_quantity
+            - prize_fund
+            - prize_details
+          properties:
+            id:
+              type: integer
+              description: Идентификатор лотереи
+            name:
+              type: string
+              description: Название лотереи
+            type_id:
+              type: integer
+              description: ID типа лотереи
+            type_name:
+              type: string
+              description: Название типа лотереи
+            status:
+              type: string
+              description: Статус лотереи (active, history)
+            players_quantity:
+              type: integer
+              description: Количество участников
+            prize_fund:
+              type: number
+              description: Призовой фонд
+            price:
+              type: number
+              description: Стоимость билета
+            draw_date:
+              type: string
+              format: date-time
+              description: Дата розыгрыша (альтернативное поле)
+            sale_start_date:
+              type: string
+              format: date-time
+              description: Дата начала продаж
+            sale_end_date:
+              type: string
+              format: date-time
+              description: Дата окончания продаж
+            prize_details:
+              type: array
+              items:
+                type: object
+                required:
+                  - position
+                  - amount
+                properties:
+                  position:
+                    type: integer
+                    description: Выигрышная позиция
+                    example: 1
+                  amount:
+                    type: integer
+                    description: Сумма выигрыша
+                    example: 100
+
+    UserTicketsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - type_id
+            - draw_date
+            - lottery_id
+            - ticket_number_id
+            - basket_id
+            - is_winner
+          properties:
+            id:
+              type: integer
+              description: id билета у пользователя
+            type_id:
+              type: integer
+              description: id типа лотереи
+            draw_date:
+              type: string
+              format: date-time
+              description: дата розыгрыша
+            lottery_id:
+              type: integer
+              description: id лотереи
+            ticket_number_id:
+              type: integer
+              description: id билета
+            is_winner:
+              type: boolean
+              description: идентификатор выигрышного билета
+    UserTicketResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - lottery_name
+            - ticket_price
+            - start_date
+            - draw_date
+            - winner_position
+            - status
+            - prize_fund
+            - participants_count
+            - url
+          properties:
+            id:
+              type: integer
+              description: id билета у пользователя
+            lottery_name:
+              type: string
+              description: Номер тиража
+            ticket_price:
+              type: string
+              description: Стоимость билета
+            start_date:
+              type: string
+              format: date
+              description: Дата начала
+            draw_date:
+              type: string
+              format: date
+              description: Дата завершения
+            winner_position:
+              type: integer
+              description: Позиция победителя
+            status:
+              type: string
+              description: Статус лотереи (active, history)
+            prize_fund:
+              type: string
+              description: Призовой фонд лотереи
+            participants_count:
+              type: integer
+              description: Количество участников
+            url:
+              type: string
+              description: URL на электронный чек
+            leaderboard:
+              type: object
+              description: Список выигрышных билетов
+    PaymentRequest:
+      type: object
+      required:
+        - internal_order_id
+        - user_id
+        - amount
+        - currency
+        - payment_method
+      properties:
+        internal_order_id:
+          type: string
+          description: Идентификатор корзины
+          example: "basket_test_17"
+          maxLength: 100
+        user_id:
+          type: integer
+          description: Идентификатор пользователя
+          example: 123456789
+          minimum: 1
+        amount:
+          type: integer
+          description: Сумма платежа в рублях с копейками
+          example: 5670
+          minimum: 1
+        currency:
+          type: string
+          description: Валюта платежа
+          example: "RUB"
+          enum: ["RUB", "USD", "EUR"]
+          default: "RUB"
+        payment_method:
+          type: string
+          description: Метод оплаты
+          example: "card"
+          enum: ["card", "sbp"]
+
+    UserProfileData:
+      type: object
+      properties:
+        data:
+          type: object
+          required:
+            - telegram_id
+            - first_name
+            - last_name
+            - username
+            - user_language_code
+            - user_country_code
+            - user_language_name
+            - user_country_name
+          properties:
+            telegram_id:
+              type: integer
+              description: ID пользователя в Telegram
+              example: 123456789
+            first_name:
+              type: string
+              description: Имя пользователя
+              example: "Иван"
+            last_name:
+              type: string
+              description: Фамилия пользователя
+              example: "Иванов"
+            username:
+              type: string
+              description: Имя пользователя в Telegram
+              example: "ivanov"
+            user_language_code:
+              type: string
+              description: Предпочитаемый язык пользователя
+              example: "ru"
+            user_country_code:
+              type: string
+              description: Страна пользователя
+              example: "RU"
+            user_language_name:
+              type: string
+              description: Название предпочитаемого языка пользователя
+              example: "Русский"
+            user_country_name:
+              type: string
+              description: Название страны пользователя
+              example: "Россия"
+
+    UpdateSettingsRequest:
+      type: object
+      required:
+        - user_language_code
+        - user_country_code
+      properties:
+        user_language_code:
+          type: string
+          description: Код предпочитаемого языка (2 символа)
+          example: "ru"
+          minLength: 2
+          maxLength: 2
+          enum: ["ru", "en", "kk", "uz", "ky", "tg", "uk"]
+        user_country_code:
+          type: string
+          description: Код страны (2 символа)
+          example: "RU"
+          minLength: 2
+          maxLength: 2
+          enum: ["RU", "BY", "KZ", "UZ", "KG", "TJ", "UA"]
+
+    CountryItem:
+      type: object
+      required:
+        - code
+        - name
+        - active
+      properties:
+        code:
+          type: string
+          description: Код страны
+          example: "RU"
+        name:
+          type: string
+          description: Название страны
+          example: "Россия"
+        active:
+          type: boolean
+          description: Активность страны
+          example: true
+
+    LanguageItem:
+      type: object
+      required:
+        - code
+        - name
+        - native_name
+        - active
+      properties:
+        code:
+          type: string
+          description: Код языка
+          example: "ru"
+        name:
+          type: string
+          description: Название языка
+          example: "Русский"
+        native_name:
+          type: string
+          description: Название языка на родном языке
+          example: "Русский"
+        active:
+          type: boolean
+          description: Активность языка
+          example: true
+
+    SettingsListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            countries:
+              type: array
+              items:
+                $ref: '#/components/schemas/CountryItem'
+            languages:
+              type: array
+              items:
+                $ref: '#/components/schemas/LanguageItem'
+
+    PaymentSuccessResponse:
+      type: object
+      required:
+        - message
+        - status
+        - data
+        - errors
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате операции
+          example: "Платеж создан успешно"
+        status:
+          $ref: "#/components/schemas/status_success"
+        data:
+          type: object
+          required:
+            - internal_order_id
+            - external_transaction_id
+            - amount
+            - currency
+            - payment_method
+          properties:
+            internal_order_id:
+              type: string
+              description: Идентификатор корзины
+              example: "basket_test_18"
+            external_transaction_id:
+              type: string
+              description: Внешний идентификатор транзакции от платежного шлюза
+              example: "515364737"
+            amount:
+              type: integer
+              description: Сумма платежа в копейках
+              example: 5670
+            currency:
+              type: string
+              description: Валюта платежа
+              example: "RUB"
+            payment_method:
+              type: string
+              description: Метод оплаты
+              example: "card"
+            payment_details:
+              type: object
+              description: Детали платежа от платежного шлюза
+              properties:
+                name:
+                  type: string
+                  description: Имя держателя карты/плательщика
+                  example: "Алихан Ш"
+                card:
+                  type: string
+                  description: Номер карты (может быть маскированным)
+                  example: "2200154534785158"
+                bank:
+                  type: string
+                  description: Название банка
+                  example: "АЛЬФА-БАНК"
+              additionalProperties: true
+        errors:
+          $ref: "#/components/schemas/errors"
+
+    PaymentStatusResponse:
+      type: object
+      required:
+        - message
+        - status
+        - data
+        - errors
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате операции
+          example: "Статус платежа получен"
+        status:
+          $ref: "#/components/schemas/status_success"
+        data:
+          type: object
+          required:
+            - internal_order_id
+            - external_transaction_id
+            - status
+            - amount
+            - currency
+          properties:
+            internal_order_id:
+              type: string
+              description: Внутренний идентификатор заказа
+              example: "basket_test_17"
+            external_transaction_id:
+              type: string
+              description: Внешний идентификатор транзакции
+              example: "515364737"
+            status:
+              type: string
+              description: Статус платежа
+              example: "completed"
+              enum: ["processing", "completed", "failed", "cancelled"]
+            amount:
+              type: integer
+              description: Сумма платежа в рублях с копейками
+              example: 5670
+            currency:
+              type: string
+              description: Валюта платежа
+              example: "RUB"
+            created_at:
+              type: string
+              format: date-time
+              description: Дата создания платежа
+              example: "2024-01-15T10:30:00Z"
+            updated_at:
+              type: string
+              format: date-time
+              description: Дата последнего обновления
+              example: "2024-01-15T10:35:00Z"
+            order_id:
+              type: string
+              description: ID заказа в платежном шлюзе
+              example: "basket_test_17"
+            expires_at:
+              type: string
+              format: date-time
+              description: Дата истечения платежа
+              example: "2024-01-15T10:45:00Z"
+        errors:
+          $ref: "#/components/schemas/errors"
+
+    PaymentCheckResponse:
+      type: object
+      required:
+        - message
+        - status
+        - data
+        - errors
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате операции
+          example: "Проверка выполнена"
+        status:
+          $ref: "#/components/schemas/status_success"
+        data:
+          type: object
+          required:
+            - exists
+            - internal_order_id
+          properties:
+            exists:
+              type: boolean
+              description: Существует ли платеж
+              example: true
+            internal_order_id:
+              type: string
+              description: Внутренний идентификатор заказа
+              example: "basket_test_17"
+        errors:
+          $ref: "#/components/schemas/errors"
+
+    BalanceResponse:
+      type: object
+      required:
+        - message
+        - status
+        - data
+        - errors
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате операции
+          example: "Баланс получен"
+        status:
+          $ref: "#/components/schemas/status_success"
+        data:
+          type: object
+          required:
+            - balance
+            - currency
+          properties:
+            balance:
+              type: integer
+              description: Текущий баланс в рублях с копейками
+              example: 150000
+            currency:
+              type: string
+              description: Валюта баланса
+              example: "RUB"
+            updated_at:
+              type: string
+              format: date-time
+              description: Дата последнего обновления баланса
+              example: "2024-01-15T10:30:00Z"
+        errors:
+          $ref: "#/components/schemas/errors"
+
+    FPGateCallbackRequest:
+      type: object
+      required:
+        - transaction_id
+        - order_id
+        - status
+        - amount
+        - currency
+        - signature
+      properties:
+        transaction_id:
+          type: string
+          description: Идентификатор транзакции от FPGate
+          example: "515364737"
+        order_id:
+          type: string
+          description: Внутренний идентификатор заказа
+          example: "basket_test_17"
+        status:
+          type: string
+          description: Статус платежа
+          example: "completed"
+          enum: ["processing", "completed", "failed", "cancelled"]
+        amount:
+          type: integer
+          description: Сумма платежа в копейках
+          example: 5670
+        currency:
+          type: string
+          description: Валюта платежа
+          example: "RUB"
+        signature:
+          type: string
+          description: Подпись для верификации запроса
+          example: "abc123def456"
+        additional_data:
+          type: object
+          description: Дополнительные данные от платежного шлюза
+          additionalProperties: true
+
+    HealthcheckResponse:
+      type: object
+      required:
+        - message
+        - status
+        - data
+        - errors
+      properties:
+        message:
+          type: string
+          description: Сообщение о состоянии сервиса
+          example: "Успешно"
+        status:
+          $ref: "#/components/schemas/status_success"
+        data:
+          type: object
+          required:
+            - microservice_name
+            - hostname
+            - server_ip
+            - port
+            - php_version
+            - memory_usage
+            - timestamp
+          properties:
+            microservice_name:
+              type: string
+              description: Название микросервиса
+              example: "ms-user"
+            hostname:
+              type: string
+              description: Имя хоста контейнера
+              example: "0fabfe48de5a"
+            server_ip:
+              type: string
+              description: IP адрес сервера
+              example: "192.168.117.2"
+            port:
+              type: string
+              description: Порт сервиса
+              example: "8085"
+            client_ip:
+              type: string
+              description: IP адрес клиента
+              example: "192.168.117.1"
+            php_version:
+              type: string
+              description: Версия PHP
+              example: "8.3.24"
+            server_os:
+              type: object
+              description: Информация об операционной системе
+              properties:
+                name:
+                  type: string
+                  example: "Linux"
+                release:
+                  type: string
+                  example: "6.15.11-orbstack"
+                version:
+                  type: string
+                  example: "#1 SMP PREEMPT"
+                machine:
+                  type: string
+                  example: "aarch64"
+            memory_usage:
+              type: object
+              description: Использование памяти
+              properties:
+                bytes:
+                  type: integer
+                  description: Использование памяти в байтах
+                  example: 6643416
+                megabytes:
+                  type: number
+                  description: Использование памяти в мегабайтах
+                  example: 6.34
+            disk_free_space:
+              type: object
+              description: Свободное место на диске
+              properties:
+                bytes:
+                  type: integer
+                  example: 311602917376
+                megabytes:
+                  type: integer
+                  example: 297168
+                gigabytes:
+                  type: number
+                  example: 290.2
+                percentage:
+                  type: number
+                  example: 98.53
+            disk_total_space:
+              type: object
+              description: Общее место на диске
+              properties:
+                bytes:
+                  type: integer
+                  example: 316242472960
+                megabytes:
+                  type: integer
+                  example: 301592
+                gigabytes:
+                  type: number
+                  example: 294.52
+            cpu_load:
+              type: object
+              description: Загрузка CPU
+              properties:
+                1_min:
+                  type: number
+                  description: Загрузка за 1 минуту
+                  example: 0.5791015625
+                5_min:
+                  type: number
+                  description: Загрузка за 5 минут
+                  example: 0.44921875
+                15_min:
+                  type: number
+                  description: Загрузка за 15 минут
+                  example: 0.3837890625
+            webman_memory_usage:
+              type: object
+              description: Использование памяти Webman
+              properties:
+                bytes:
+                  type: integer
+                  example: 14176256
+                kilobytes:
+                  type: integer
+                  example: 13844
+                megabytes:
+                  type: number
+                  example: 13.52
+            uptime:
+              type: string
+              description: Время работы сервера
+              example: "19358.33 189449.38"
+            timezone:
+              type: string
+              description: Часовой пояс сервера
+              example: "Europe/Moscow"
+            timestamp:
+              type: string
+              description: Текущая дата и время
+              example: "2025-08-28 12:58:24"
+          additionalProperties: true
+        errors:
+          $ref: "#/components/schemas/errors"

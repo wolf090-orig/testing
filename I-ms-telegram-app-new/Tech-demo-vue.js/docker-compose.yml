@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Фронтенд приложение NIYAT
+  niyat-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: niyat-frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - niyat-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Сервис для разработки (опционально)
+  niyat-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: niyat-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_HOST=0.0.0.0
+      - VITE_PORT=5173
+    command: npm run dev
+    networks:
+      - niyat-network
+    profiles:
+      - dev
+
+networks:
+  niyat-network:
+    driver: bridge
+    name: niyat-network
+
+# Volumes для персистентного хранения (если потребуется)
+volumes:
+  niyat-data:
+    driver: local
+    name: niyat-data

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/var/www/webman/phpunit.xml" tests="20" assertions="76" errors="0" failures="0" skipped="0" time="1.361144">
+    <testsuite name="Application Test Suite" tests="20" assertions="76" errors="0" failures="0" skipped="0" time="1.361144">
+      <testsuite name="tests\FunctionsTest" file="/var/www/webman/tests/FunctionsTest.php" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.177276">
+        <testcase name="testSuccessFunction" file="/var/www/webman/tests/FunctionsTest.php" line="28" class="tests\FunctionsTest" classname="tests.FunctionsTest" assertions="4" time="0.173390"/>
+        <testcase name="testWarningFunction" file="/var/www/webman/tests/FunctionsTest.php" line="60" class="tests\FunctionsTest" classname="tests.FunctionsTest" assertions="4" time="0.001949"/>
+        <testcase name="testErrorFunction" file="/var/www/webman/tests/FunctionsTest.php" line="92" class="tests\FunctionsTest" classname="tests.FunctionsTest" assertions="4" time="0.001937"/>
+      </testsuite>
+      <testsuite name="tests\controller\HealthcheckControllerTest" file="/var/www/webman/tests/controller/HealthcheckControllerTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.063416">
+        <testcase name="testIndex" file="/var/www/webman/tests/controller/HealthcheckControllerTest.php" line="33" class="tests\controller\HealthcheckControllerTest" classname="tests.controller.HealthcheckControllerTest" assertions="1" time="0.063416"/>
+      </testsuite>
+      <testsuite name="tests\controller\IndexControllerTest" file="/var/www/webman/tests/controller/IndexControllerTest.php" tests="3" assertions="4" errors="0" failures="0" skipped="0" time="0.031619">
+        <testcase name="testIndexInDebugMode" file="/var/www/webman/tests/controller/IndexControllerTest.php" line="67" class="tests\controller\IndexControllerTest" classname="tests.controller.IndexControllerTest" assertions="1" time="0.024754"/>
+        <testcase name="testIndexInNormalMode" file="/var/www/webman/tests/controller/IndexControllerTest.php" line="88" class="tests\controller\IndexControllerTest" classname="tests.controller.IndexControllerTest" assertions="2" time="0.005058"/>
+        <testcase name="testReadme" file="/var/www/webman/tests/controller/IndexControllerTest.php" line="112" class="tests\controller\IndexControllerTest" classname="tests.controller.IndexControllerTest" assertions="1" time="0.001807"/>
+      </testsuite>
+      <testsuite name="tests\helpers\Healthcheck\MemoryHelperTest" file="/var/www/webman/tests/helpers/Healthcheck/MemoryHelperTest.php" tests="1" assertions="7" errors="0" failures="0" skipped="0" time="0.019656">
+        <testcase name="testGetMemoryUsage" file="/var/www/webman/tests/helpers/Healthcheck/MemoryHelperTest.php" line="30" class="tests\helpers\Healthcheck\MemoryHelperTest" classname="tests.helpers.Healthcheck.MemoryHelperTest" assertions="7" time="0.019656"/>
+      </testsuite>
+      <testsuite name="tests\helpers\Healthcheck\ShellCommandTest" file="/var/www/webman/tests/helpers/Healthcheck/ShellCommandTest.php" tests="3" assertions="5" errors="0" failures="0" skipped="0" time="0.016933">
+        <testcase name="testExec" file="/var/www/webman/tests/helpers/Healthcheck/ShellCommandTest.php" line="20" class="tests\helpers\Healthcheck\ShellCommandTest" classname="tests.helpers.Healthcheck.ShellCommandTest" assertions="1" time="0.005887"/>
+        <testcase name="testExecWithComplexCommand" file="/var/www/webman/tests/helpers/Healthcheck/ShellCommandTest.php" line="38" class="tests\helpers\Healthcheck\ShellCommandTest" classname="tests.helpers.Healthcheck.ShellCommandTest" assertions="2" time="0.008663"/>
+        <testcase name="testExecWithInvalidCommand" file="/var/www/webman/tests/helpers/Healthcheck/ShellCommandTest.php" line="58" class="tests\helpers\Healthcheck\ShellCommandTest" classname="tests.helpers.Healthcheck.ShellCommandTest" assertions="2" time="0.002384"/>
+      </testsuite>
+      <testsuite name="tests\helpers\Healthcheck\UptimeHelperTest" file="/var/www/webman/tests/helpers/Healthcheck/UptimeHelperTest.php" tests="2" assertions="6" errors="0" failures="0" skipped="0" time="1.011883">
+        <testcase name="testInitSetsStartTime" file="/var/www/webman/tests/helpers/Healthcheck/UptimeHelperTest.php" line="31" class="tests\helpers\Healthcheck\UptimeHelperTest" classname="tests.helpers.Healthcheck.UptimeHelperTest" assertions="3" time="0.002227"/>
+        <testcase name="testGetUptimeReturnsCorrectValue" file="/var/www/webman/tests/helpers/Healthcheck/UptimeHelperTest.php" line="50" class="tests\helpers\Healthcheck\UptimeHelperTest" classname="tests.helpers.Healthcheck.UptimeHelperTest" assertions="3" time="1.009656"/>
+      </testsuite>
+      <testsuite name="tests\middleware\StaticFileTest" file="/var/www/webman/tests/middleware/StaticFileTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="0.029340">
+        <testcase name="testProcessBlocksDotFiles" file="/var/www/webman/tests/middleware/StaticFileTest.php" line="33" class="tests\middleware\StaticFileTest" classname="tests.middleware.StaticFileTest" assertions="3" time="0.023547"/>
+        <testcase name="testProcessAllowsNormalFiles" file="/var/www/webman/tests/middleware/StaticFileTest.php" line="57" class="tests\middleware\StaticFileTest" classname="tests.middleware.StaticFileTest" assertions="2" time="0.002788"/>
+        <testcase name="testProcessAddsCorsHeaders" file="/var/www/webman/tests/middleware/StaticFileTest.php" line="82" class="tests\middleware\StaticFileTest" classname="tests.middleware.StaticFileTest" assertions="4" time="0.003005"/>
+      </testsuite>
+      <testsuite name="tests\responses\JsonResponseTest" file="/var/www/webman/tests/responses/JsonResponseTest.php" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.006186">
+        <testcase name="testSuccessResponse" file="/var/www/webman/tests/responses/JsonResponseTest.php" line="29" class="tests\responses\JsonResponseTest" classname="tests.responses.JsonResponseTest" assertions="4" time="0.002107"/>
+        <testcase name="testWarningResponse" file="/var/www/webman/tests/responses/JsonResponseTest.php" line="58" class="tests\responses\JsonResponseTest" classname="tests.responses.JsonResponseTest" assertions="4" time="0.002099"/>
+        <testcase name="testErrorResponse" file="/var/www/webman/tests/responses/JsonResponseTest.php" line="87" class="tests\responses\JsonResponseTest" classname="tests.responses.JsonResponseTest" assertions="4" time="0.001980"/>
+      </testsuite>
+      <testsuite name="tests\services\HealthCheckServiceTest" file="/var/www/webman/tests/services/HealthCheckServiceTest.php" tests="1" assertions="20" errors="0" failures="0" skipped="0" time="0.004836">
+        <testcase name="testPerformHealthCheck" file="/var/www/webman/tests/services/HealthCheckServiceTest.php" line="34" class="tests\services\HealthCheckServiceTest" classname="tests.services.HealthCheckServiceTest" assertions="20" time="0.004836"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

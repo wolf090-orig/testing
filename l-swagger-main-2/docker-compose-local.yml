@@ -1,0 +1,15 @@
+version: '3.6'
+
+services:
+  swaggerui:
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - ./docs:/usr/share/nginx/html/docs
+    ports:
+      - ${HOST_PORT:-8084}:8080
+    environment:
+      URLS_PRIMARY_NAME: "API НЛУ"
+      URLS: "[
+      { url: 'docs/mc_register_openapi.yaml', name: 'МС Регистрации'} 
+      ]"

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-lottery
+  namespace: ms
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-lottery
+  template:
+    metadata:
+      labels:
+        app: ms-lottery
+    spec:
+      containers:
+        - name: ms-lottery-container
+          image: git.abflow.uz:5005/nlu/ms-lottery:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ms-lottery-db-config
+            - configMapRef:
+                name: ms-redis-config
+            - configMapRef:
+                name: ms-lottery-config
+            - configMapRef:
+                name: ms-kafka-config
+            - secretRef:
+                name: ms-postgres-secret
+            - secretRef:
+                name: ms-redis-secret
+            - secretRef:
+                name: kafka-draw-service
+          resources: {}
+      imagePullSecrets:
+        - name: gitlab-registry-creds
+      nodeSelector:
+        name: pathetic

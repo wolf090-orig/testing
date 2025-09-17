@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: ms-draw-service
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - .:/var/www/webman
+    env_file:
+      - .env
+    restart: always
+    networks:
+      - internal
+      - nlu-shared-network
+    healthcheck:
+      test: curl --fail http://localhost:${SERVER_PORT}/healthcheck || exit 1
+      interval: 60s
+      retries: 3
+      start_period: 3s
+      timeout: 10s
+
+volumes:
+  postgres-data: { }
+  redis_data:
+networks:
+  internal:
+  nlu-shared-network:
+    external: true

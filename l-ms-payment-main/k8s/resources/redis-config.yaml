@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ms-redis-config
+  namespace: ms
+data:
+  REDIS_HOST: master.2e7f292b-7309-4a3e-b44a-d171fb603456.c.dbaas.selcloud.ru
+  REDIS_PORT: '6379'
